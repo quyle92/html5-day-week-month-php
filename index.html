@@ -1,0 +1,370 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>HTML5/JavaScript Calendar with Day/Week/Month Views (PHP. MySQL)</title>
+
+  <style type="text/css">
+    p, body, td { font-family: Tahoma, Arial, Helvetica, sans-serif; font-size: 10pt; }
+    body { padding: 0px; margin: 0px; background-color: #ffffff; }
+    a { color: #1155a3; }
+    .space { margin: 10px 0px 10px 0px; }
+    .header { background: #003267; background: linear-gradient(to right, #011329 0%,#00639e 44%,#011329 100%); padding:20px 10px; color: white; box-shadow: 0px 0px 10px 5px rgba(0,0,0,0.75); }
+    .header a { color: white; }
+    .header h1 a { text-decoration: none; }
+    .header h1 { padding: 0px; margin: 0px; }
+    .main { padding: 10px; margin-top: 10px; }
+  </style>
+
+  <style>
+    .toolbar {
+      margin: 10px 0px;
+    }
+
+    .toolbar > .toolbar-item:not(:last-child) {
+      border-right: 1px solid #ccc;
+    }
+
+    .toolbar-item {
+      padding: 0px 10px;
+    }
+
+    .toolbar-item a {
+      text-decoration: none;
+      color: black;
+      display: inline-block;
+      margin-right: 5px;
+      font-size: 14px;
+    }
+    .selected-button {
+      border-bottom: 2px solid orange;
+    }
+	
+	.event_action_delete {border:1px solid red;}
+	.heigh-adjustment {
+  </style>
+    <!-- jQuery -->
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+
+  <!-- DayPilot library -->
+  <script language="JavaScript" type="text/javascript" src="js/daypilot/daypilot-all.min.js"></script>
+  <script language="JavaScript" type="text/javascript" src="js/daypilot/daypilot-modal-2.9.js"></script>
+
+
+
+</head>
+<body>
+<div class="header">
+  <h1><a href='https://code.daypilot.org/27988/html5-calendar-with-day-week-month-views-javascript-php'>HTML5 Calendar with Day/Week/Month Views (JavaScript, PHP)</a></h1>
+  <div><a href="https://javascript.daypilot.org/">DayPilot for JavaScript</a> - HTML5 Calendar/Scheduling Components for JavaScript/Angular/React/Vue</div>
+</div>
+
+<div class="main">
+  <div style="float:left; width: 220px;">
+    <div id="nav"></div>
+  </div>
+  <div style="margin-left: 220px;">
+    <div class="toolbar buttons">
+      <span class="toolbar-item"><a id="buttonDay" href="#">Day</a></span>
+      <span class="toolbar-item"><a id="buttonWeek" href="#">Week</a></span>
+      <span class="toolbar-item"><a id="buttonMonth" href="#">Month</a></span>
+    </div>
+    <div id="dpDay"></div>
+    <div id="dpWeek"></div>
+    <div id="dpMonth"></div>
+  </div>
+
+
+</div>
+
+<script  language="JavaScript" type="text/javascript" >
+<!-- var modal = new DayPilot.Modal({ -->
+  <!-- onClosed: function(args) { -->
+    <!-- console.log("Modal dialog closed"); -->
+  <!-- }, -->
+  <!-- // ... -->
+  
+<!-- }); -->
+<!-- modal.showUrl("datetime.php");modal.autoStretch = true;modal.theme ="modal_min"; -->
+
+
+  var nav = new DayPilot.Navigator("nav");
+  nav.showMonths = 3;
+  nav.skipMonths = 3;
+  nav.init();
+
+  var day = new DayPilot.Calendar("dpDay");
+  day.viewType = "Day";
+  addEventHandlers(day);
+  day.init();
+
+  var week = new DayPilot.Calendar("dpWeek");
+  week.viewType = "Week";
+  addEventHandlers(week);
+  week.init();
+
+
+  var month = new DayPilot.Month("dpMonth");
+  addEventHandlers(month);
+  month.init();
+
+
+
+  function addEventHandlers(dp) {
+  
+	  dp.onEventMove = function(args) {
+	  if (!confirm('Are you sure you want to move this?')) { 
+		args.preventDefault();
+	  } 
+	};
+	
+    dp.onEventMoved = function (args) {
+      $.post("backend_move.php",
+        {
+          id: args.e.id(),
+          newStart: args.newStart.toString(),
+          newEnd: args.newEnd.toString()
+        },
+        function() {
+          console.log("Moved.");dp.message("Moved: " + args.e.text());
+        });
+    };
+	
+	dp.onEventResize = function(args) {
+	  if (!confirm('Are you sure you want to resize this?')) { 
+		args.preventDefault();
+	  } 
+	};
+	
+    dp.onEventResized = function (args) {
+      $.post("backend_resize.php",
+        {
+          id: args.e.id(),
+          newStart: args.newStart.toString(),
+          newEnd: args.newEnd.toString()
+        },
+        function() {
+          console.log("Resized.");dp.message("Resized: " + args.e.text());
+        });
+    };
+
+
+    // event creating
+    dp.onTimeRangeSelected = function (args) {
+	
+        var modal = new DayPilot.Modal({theme: "modal_min"});
+        modal.onClosed = function(args) {
+            dp.clearSelection();
+            var data = args.result;
+            if (data && data.result == "OK") {
+				dp.message(data.message);
+				dp.events.load("backend_events.php");
+                //loadEvents(); 
+				//alert(data.result); 
+                
+            }
+        };
+        modal.showUrl("datetime.php?start=" + args.start + "&end=" + args.end + "&n=" + args.resource);
+		modal.autoStretch = true;
+		
+       
+		
+		
+                    
+    //dp.init();
+
+      <!-- DayPilot.Modal.prompt("New event name:", "Event").then(function(modal) { -->
+        <!-- dp.clearSelection(); -->
+
+        <!-- if (!modal.result) { -->
+          <!-- return; -->
+        <!-- } -->
+
+        <!-- $.post("backend_create.php", -->
+          <!-- { -->
+            <!-- start: args.start.toString(), -->
+            <!-- end: args.end.toString(), -->
+            <!-- name: modal.result -->
+          <!-- }, -->
+          <!-- function(data) { -->
+            <!-- var e = new DayPilot.Event({ -->
+              <!-- start: args.start, -->
+              <!-- end: args.end, -->
+              <!-- id: data.id, -->
+              <!-- //resource: args.resource, -->
+              <!-- text: modal.result, -->
+            <!-- }); -->
+
+            <!-- dp.events.add(e); -->
+
+          <!-- } -->
+        <!-- ); -->
+
+      <!-- }); -->
+    };
+	
+	dp.onBeforeEventRender = function(args) {
+	  //  args.data.rightClickDisabled = true;
+		args.data.barColor = "red";
+		args.data.html = args.data.text + "<br>" + args.data.staff + " - " + args.data.service;
+		//args.data.html = args.data.text + "<br>" + args.data.staff;
+	}
+	
+    dp.onEventClick = function(args) {
+        var modal = new DayPilot.Modal();
+        modal.onClosed = function(args) {
+            // reload all events
+            var result = args.result;
+            if (result && result.status === "OK") {
+                loadEvents();
+            }
+        };
+        modal.showUrl("datetime-edit.php?id=" + args.e.id());
+    };
+    
+		
+   
+	
+	
+	<!-- dp.eventClickHandling = "Edit"; -->
+	<!-- dp.onEventEdited = function(args) { -->
+    <!-- dp.message("Event text changed to " + args.newText); -->
+			<!-- $.ajax({ -->
+			<!-- type: 'POST', -->
+			<!-- url: 'backend_edit.php', -->
+			<!-- data: {  -->
+				<!-- 'id': args.e.id(), -->
+				<!-- 'text': args.e.text(), -->
+			<!-- }, -->
+			<!-- success: function(msg){ -->
+				<!-- //alert('wow' + msg); -->
+				
+			<!-- }, -->
+			<!-- error: function(jqXHR, textStatus, errorThrown) { -->
+				   <!-- console.log(textStatus, errorThrown); -->
+		<!-- } -->
+				<!-- }); -->
+  <!-- }; -->
+
+	<!-- } -->
+	    dp.contextMenu = new DayPilot.Menu({
+        cssClassPrefix: "menu_default",
+        items: [
+        {text:"Show event ID", onclick: function() {alert("Event value: " + this.source.value());} },
+        {text:"Show event text", onclick: function() {alert("Event text: " + this.source.text());} },
+        {text:"Show event start", onclick: function() {alert("Event start: " + this.source.start().toStringSortable());} },
+		{text: "Change background color", onClick: function (args) {
+        var e = args.source;
+        e.data.backColor = "cyan";
+        dp.events.update(e);
+		}},
+		{ text: "-"},
+        {text:"Delete", 
+		onclick: function() {   
+		    
+		//dp.contextMenu.eventDeleteHandling = "Update";
+		//dp.contextMenu.onEventDelete = function(args) {
+            if(confirm('Are you sure to delete event id: ' + this.source.value() + '?')){
+                //dp.eventMenuClickCallBack(this.source.value(), 'delete');
+				//dp.eventDeleteCallBack(this.source.value());
+				//args.preventDefault();
+				dp.events.remove(this.source);var e =this.source;    
+				$.ajax({
+				type: 'POST',
+				url: 'backend_delete.php',
+				data: { 
+					'id': e.value()
+			 
+					},
+				success: function(msg){
+					//alert('wow' + msg);
+					
+					},
+				error: function(jqXHR, textStatus, errorThrown) {
+					   console.log(textStatus, errorThrown);
+					}
+				});
+					dp.message("Delete: " + e.text());
+            }
+		//}
+		
+
+		
+		}},
+		{text:"Edit", onclick: function() { 
+			dp.events.edit(this.source);
+			$.ajax({
+			type: 'POST',
+			url: 'backend_edit.php',
+			data: { 
+				'id': this.source.value(),
+				'text': this.source.text(),
+			},
+			success: function(msg){
+				//alert('wow' + msg);
+				
+			},
+			error: function(jqXHR, textStatus, errorThrown) {
+				   console.log(textStatus, errorThrown);
+		}
+				});
+		
+		} },
+		{text:"Edit Form", onclick: function(args) { 
+			var modal = new DayPilot.Modal();
+			modal.showUrl("datetime-edit.php?id=" + this.source.value()+ "&dummy=" + new Date().getTime());
+			modal.onClosed = function(args) {//alert(11);
+				// reload all events
+				var data = args.result;
+				if (data && data.result === "OK") {
+					dp.message(data.message); 
+					
+					window.setTimeout(function(){location.reload()},000);
+					
+				}
+				
+			};
+			
+		
+		} }
+
+		
+
+    ]});     
+	$(function() {
+	 dp.events.load("backend_events.php");
+});
+ 
+	
+  }
+  
+
+  var switcher = new DayPilot.Switcher({
+    triggers: [
+      {id: "buttonDay", view: day },
+      {id: "buttonWeek", view: week},
+      {id: "buttonMonth", view: month}
+    ],
+    navigator: nav,
+    selectedClass: "selected-button",
+    onChanged: function(args) {
+      console.log("onChanged fired");
+      switcher.events.load("backend_events.php");
+    }
+  });
+
+  switcher.select("buttonWeek");
+  
+
+  
+
+</script>
+
+</body>
+</html>
+
+
+
+
+
+
